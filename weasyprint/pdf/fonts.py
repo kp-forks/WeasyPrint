@@ -70,12 +70,12 @@ class Font:
         # Set ascent and descent.
         if self.font_size:
             pango_metrics = pango.pango_font_get_metrics(pango_font, ffi.NULL)
-            self.ascent = int(
-                pango.pango_font_metrics_get_ascent(pango_metrics) /
-                self.font_size * 1000)
-            self.descent = -int(
-                pango.pango_font_metrics_get_descent(pango_metrics) /
-                self.font_size * 1000)
+            self.ascent = int(round(
+                pango.pango_font_metrics_get_ascent(pango_metrics) * FROM_UNITS /
+                self.font_size * 1000))
+            self.descent = -int(round(
+                pango.pango_font_metrics_get_descent(pango_metrics) * FROM_UNITS /
+                self.font_size * 1000))
         else:
             self.ascent = self.descent = 0
 
@@ -128,7 +128,7 @@ class Font:
             if 'wght' not in self.variations:
                 self.variations['wght'] = self.weight
             if 'opsz' not in self.variations:
-                self.variations['opsz'] = self.font_size * FROM_UNITS
+                self.variations['opsz'] = self.font_size
             if 'slnt' not in self.variations:
                 slnt = 0
                 if self.style == 1:
@@ -342,15 +342,19 @@ def build_fonts_dictionary(pdf, fonts, compress, subset, options):
             b'/CMapType 2 def',
             b'1 begincodespacerange',
             b'<0000> <ffff>',
-            b'endcodespacerange',
-            f'{len(cmap)} beginbfchar'.encode()], compress=compress)
-        for glyph, text in cmap.items():
-            unicode_codepoints = ''.join(
-                f'{letter.encode("utf-16-be").hex()}' for letter in text)
-            to_unicode.stream.append(
-                f'<{glyph:04x}> <{unicode_codepoints}>'.encode())
+            b'endcodespacerange'], compress=compress)
+        cmap_length = len(cmap)
+        cmap_items = tuple(cmap.items())
+        for i in range(ceil(cmap_length / 100)):
+            batch_length = min(100, cmap_length - i * 100)
+            to_unicode.stream.append(f'{batch_length} beginbfchar'.encode())
+            for glyph, text in cmap_items[i*100:(i+1)*100]:
+                unicode_codepoints = ''.join(
+                    f'{letter.encode("utf-16-be").hex()}' for letter in text)
+                to_unicode.stream.append(
+                    f'<{glyph:04x}> <{unicode_codepoints}>'.encode())
+            to_unicode.stream.append(b'endbfchar')
         to_unicode.stream.extend([
-            b'endbfchar',
             b'endcmap',
             b'CMapName currentdict /CMap defineresource pop',
             b'end',
