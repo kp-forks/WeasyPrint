@@ -93,7 +93,7 @@ Consider the following example:
 .. code-block:: css
 
   @page {
-    size: A3 landscape; /* Change the page size and orientation */
+    size: A3 landscape; /* Change from the default size and orientation of A4 portrait */
     margin: 3cm; /* Set margin on each page */
   }
 
@@ -102,7 +102,7 @@ file, use the ``-s`` option with shell process substitution:
 
 .. code-block:: sh
 
-  $ weasyprint input.html output.pdf -s <(echo "@page { size: A3 landscape }")
+  $ weasyprint input.html output.pdf -s <(echo "@page { size: A3 landscape; margin: 3cm }")
 
 There is much more which can be achieved with the ``@page`` at-rule,
 such as page numbers, headers, etc. Read more about the page_ at-rule.
